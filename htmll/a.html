@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Treasure Runner Multiplayer</title>
+  <link rel="stylesheet" href="b.css" />
+
+  <!-- Firebase v9 (compat build – no bundler needed) -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════
+     PARTICLES BACKGROUND
+═══════════════════════════════════════════════ -->
+<canvas id="particleCanvas"></canvas>
+
+<!-- ═══════════════════════════════════════════════
+     SCREEN: HOME
+═══════════════════════════════════════════════ -->
+<div id="screen-home" class="screen active">
+  <div class="home-container">
+    <div class="logo-wrap">
+      <div class="logo-icon">💎</div>
+      <h1 class="logo-title">Treasure<span>Runner</span></h1>
+      <p class="logo-sub">Multiplayer Racing Adventure</p>
+    </div>
+
+    <div class="home-card glass-card">
+      <div class="input-group">
+        <label for="playerName">Your Name</label>
+        <input id="playerName" type="text" maxlength="16" placeholder="Enter your name…" autocomplete="off" />
+      </div>
+
+      <button id="btnCreate" class="btn btn-primary btn-glow">
+        <span>🏠</span> Create Room
+      </button>
+
+      <div class="divider"><span>or</span></div>
+
+      <div class="input-group">
+        <label for="joinCode">Room Code</label>
+        <input id="joinCode" type="text" maxlength="6" placeholder="ABC123" autocomplete="off" style="text-transform:uppercase;letter-spacing:4px;text-align:center"/>
+      </div>
+      <button id="btnJoin" class="btn btn-secondary btn-glow">
+        <span>🚪</span> Join Room
+      </button>
+
+      <div class="home-footer-btns">
+        <button id="btnStats" class="btn btn-ghost">📊 Stats</button>
+        <button id="btnSettings" class="btn btn-ghost">⚙️ Settings</button>
+        <button id="btnSound" class="btn btn-ghost">🔊 Sound</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     SCREEN: LOBBY
+═══════════════════════════════════════════════ -->
+<div id="screen-lobby" class="screen">
+  <div class="lobby-container glass-card">
+    <h2 class="screen-title">🎮 Game Lobby</h2>
+
+    <div class="room-code-display">
+      <span class="room-code-label">Room Code</span>
+      <div class="room-code-box">
+        <span id="lobbyRoomCode">------</span>
+        <button id="btnCopyCode" class="btn-icon" title="Copy code">📋</button>
+      </div>
+    </div>
+
+    <div class="players-panel">
+      <div class="player-slot" id="slot1">
+        <div class="player-avatar">🏃</div>
+        <div class="player-info">
+          <span class="player-slot-name" id="slot1Name">Waiting…</span>
+          <span class="player-slot-status" id="slot1Status">—</span>
+        </div>
+        <button id="btnReady" class="btn btn-success">✅ Ready</button>
+      </div>
+      <div class="vs-divider">VS</div>
+      <div class="player-slot" id="slot2">
+        <div class="player-avatar">🏃</div>
+        <div class="player-info">
+          <span class="player-slot-name" id="slot2Name">Waiting…</span>
+          <span class="player-slot-status" id="slot2Status">—</span>
+        </div>
+        <div class="waiting-dots"><span></span><span></span><span></span></div>
+      </div>
+    </div>
+
+    <p class="lobby-hint" id="lobbyHint">Share the room code with your friend!</p>
+    <button id="btnLeaveLobby" class="btn btn-danger">🚪 Leave</button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     SCREEN: COUNTDOWN
+═══════════════════════════════════════════════ -->
+<div id="screen-countdown" class="screen">
+  <div class="countdown-wrap">
+    <div id="countdownNum" class="countdown-num">3</div>
+    <p class="countdown-label">GET READY!</p>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     SCREEN: GAME
+═══════════════════════════════════════════════ -->
+<div id="screen-game" class="screen">
+
+  <!-- HUD TOP -->
+  <div id="hud" class="hud-top">
+    <div class="hud-block">
+      <span id="hudTimer" class="hud-val">0:00</span>
+      <span class="hud-lbl">TIME</span>
+    </div>
+    <div class="progress-wrap">
+      <div class="progress-track">
+        <div id="myProgress" class="progress-bar p1"></div>
+        <div id="opProgress" class="progress-bar p2"></div>
+      </div>
+      <div class="progress-labels">
+        <span id="progLabel1">You</span>
+        <span>🏁</span>
+        <span id="progLabel2">Opp</span>
+      </div>
+    </div>
+    <div class="hud-block">
+      <span id="hudCoins" class="hud-val">0</span>
+      <span class="hud-lbl">COINS</span>
+    </div>
+  </div>
+
+  <!-- LEADERBOARD PANEL -->
+  <div id="leaderboard" class="leaderboard-panel glass-card">
+    <h3>📊 Live</h3>
+    <div id="lbRows"></div>
+    <div class="ping-row">Ping: <span id="pingVal">—</span> ms</div>
+  </div>
+
+  <!-- CHAT PANEL -->
+  <div id="chatPanel" class="chat-panel glass-card">
+    <div id="chatMessages" class="chat-messages"></div>
+    <div class="chat-input-row">
+      <input id="chatInput" type="text" placeholder="Message…" maxlength="80" autocomplete="off"/>
+      <button id="btnSendChat" class="btn-icon">➤</button>
+    </div>
+    <div class="emoji-bar">
+      <button class="emoji-btn" data-e="😂">😂</button>
+      <button class="emoji-btn" data-e="🔥">🔥</button>
+      <button class="emoji-btn" data-e="💀">💀</button>
+      <button class="emoji-btn" data-e="👑">👑</button>
+      <button class="emoji-btn" data-e="🎉">🎉</button>
+      <button class="emoji-btn" data-e="💨">💨</button>
+    </div>
+  </div>
+
+  <!-- GAME CANVAS -->
+  <canvas id="gameCanvas"></canvas>
+
+  <!-- MOBILE CONTROLS -->
+  <div id="mobileControls" class="mobile-controls">
+    <div id="joystickZone" class="joystick-zone">
+      <div id="joystickBase" class="joystick-base">
+        <div id="joystickThumb" class="joystick-thumb"></div>
+      </div>
+    </div>
+    <div class="action-btns">
+      <button id="btnJump" class="action-btn jump-btn">↑<br><small>Jump</small></button>
+      <button id="btnSlide" class="action-btn slide-btn">↓<br><small>Slide</small></button>
+    </div>
+  </div>
+
+  <!-- POWER-UP INDICATOR -->
+  <div id="powerupIndicator" class="powerup-indicator hidden">
+    <span id="powerupIcon">⚡</span>
+    <div id="powerupBar" class="powerup-timer-bar"><div id="powerupFill"></div></div>
+  </div>
+
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     SCREEN: WINNER
+═══════════════════════════════════════════════ -->
+<div id="screen-winner" class="screen">
+  <div class="winner-container glass-card">
+    <div id="winnerBadge" class="winner-badge">🏆</div>
+    <h2 id="winnerTitle" class="winner-title">You Win!</h2>
+    <p id="winnerSub" class="winner-sub">Congratulations!</p>
+    <div class="winner-stats">
+      <div class="stat-box"><span id="wCoins">0</span><small>Coins</small></div>
+      <div class="stat-box"><span id="wTime">0:00</span><small>Time</small></div>
+      <div class="stat-box"><span id="wDist">0m</span><small>Distance</small></div>
+    </div>
+    <div class="winner-actions">
+      <button id="btnPlayAgain" class="btn btn-primary btn-glow">🔄 Play Again</button>
+      <button id="btnLeaveRoom" class="btn btn-danger">🚪 Leave Room</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     SCREEN: STATISTICS
+═══════════════════════════════════════════════ -->
+<div id="screen-stats" class="screen">
+  <div class="stats-container glass-card">
+    <h2 class="screen-title">📊 Your Statistics</h2>
+    <div class="stats-grid">
+      <div class="stat-card"><div id="sGames" class="stat-num">0</div><div class="stat-lbl">Games Played</div></div>
+      <div class="stat-card"><div id="sWins" class="stat-num">0</div><div class="stat-lbl">Wins</div></div>
+      <div class="stat-card"><div id="sLosses" class="stat-num">0</div><div class="stat-lbl">Losses</div></div>
+      <div class="stat-card"><div id="sCoins" class="stat-num">0</div><div class="stat-lbl">Coins Collected</div></div>
+      <div class="stat-card"><div id="sBest" class="stat-num">—</div><div class="stat-lbl">Best Time</div></div>
+      <div class="stat-card"><div id="sWinRate" class="stat-num">0%</div><div class="stat-lbl">Win Rate</div></div>
+    </div>
+    <button id="btnBackStats" class="btn btn-ghost">← Back</button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     SCREEN: SETTINGS
+═══════════════════════════════════════════════ -->
+<div id="screen-settings" class="screen">
+  <div class="stats-container glass-card">
+    <h2 class="screen-title">⚙️ Settings</h2>
+    <div class="setting-row">
+      <label>Sound Effects</label>
+      <label class="toggle"><input type="checkbox" id="setSfx" checked/><span class="slider"></span></label>
+    </div>
+    <div class="setting-row">
+      <label>Music</label>
+      <label class="toggle"><input type="checkbox" id="setMusic" checked/><span class="slider"></span></label>
+    </div>
+    <div class="setting-row">
+      <label>Show FPS</label>
+      <label class="toggle"><input type="checkbox" id="setFps"/><span class="slider"></span></label>
+    </div>
+    <div class="setting-row">
+      <label>Graphics Quality</label>
+      <select id="setQuality" class="select-ctrl">
+        <option value="high">High</option>
+        <option value="medium">Medium</option>
+        <option value="low">Low</option>
+      </select>
+    </div>
+    <button id="btnBackSettings" class="btn btn-ghost">← Back</button>
+  </div>
+</div>
+
+<!-- TOAST NOTIFICATION -->
+<div id="toast" class="toast"></div>
+
+<!-- FPS COUNTER -->
+<div id="fpsCounter" class="fps-counter hidden">60 FPS</div>
+
+<script src="c.js"></script>
+</body>
+</html>
